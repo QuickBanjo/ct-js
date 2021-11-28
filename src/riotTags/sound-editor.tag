@@ -37,10 +37,13 @@ sound-editor.panel.view
         this.mixin(window.riotVoc);
         this.mixin(window.riotWired);
         this.playing = false;
-        this.sound = this.opts.sound;
+        // make a working copy of the sound
+        this.projectSound = this.opts.sound;
+        this.sound = {};
+        Object.assign(this.sound, this.projectSound);
         this.on('update', () => {
             const sound = global.currentProject.sounds.find(sound =>
-                this.sound.name === sound.name && this.sound !== sound);
+                this.sound.name === sound.name && this.sound.uid !== sound.uid);
             if (sound) {
                 this.nameTaken = true;
             } else {
@@ -54,6 +57,10 @@ sound-editor.panel.view
             if (this.playing) {
                 this.togglePlay();
             }
+
+            // move working copy back to project data
+            Object.assign(this.projectSound, this.sound);
+
             this.parent.editing = false;
             this.parent.update();
         };
