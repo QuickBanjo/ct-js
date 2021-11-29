@@ -301,6 +301,15 @@ const getTexturePivot = (texture, inPixels) => {
     return [texture.axis[0] / texture.width, texture.axis[1] / texture.height];
 };
 
+const assignTexture = (targetTexture, sourceTexture) => {
+    // first, shallow copy props
+    Object.assign(targetTexture, sourceTexture);
+
+    // then, deep copy shallow arrays
+    targetTexture.axis = [...sourceTexture.axis];
+    targetTexture.grid = [...sourceTexture.grid];
+};
+
 module.exports = {
     clearPixiTextureCache,
     getTextureFromId,
@@ -311,5 +320,6 @@ module.exports = {
     getPixiTexture,
     getDOMImage,
     importImageToTexture,
-    textureGenPreview
+    textureGenPreview,
+    assignTexture
 };

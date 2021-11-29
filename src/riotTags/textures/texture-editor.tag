@@ -34,11 +34,11 @@ texture-editor.panel.view
                     label.checkbox
                         input(type="radio" name="collisionform" checked="{opts.texture.shape === 'strip'}" onclick="{textureSelectStrip}")
                         span {voc.strip}
-                fieldset(if="{opts.texture.shape === 'circle'}")
+                fieldset(if="{this.texture.shape === 'circle'}")
                     b {voc.radius}
                     br
                     input.wide(type="number" value="{opts.texture.r}" onchange="{wire('this.texture.r')}" oninput="{wire('this.texture.r')}")
-                fieldset(if="{opts.texture.shape === 'rect'}")
+                fieldset(if="{this.texture.shape === 'rect'}")
                     .center
                         input.short(type="number" value="{opts.texture.top}" onchange="{wire('this.texture.top')}" oninput="{wire('this.texture.top')}")
                         br
@@ -51,7 +51,7 @@ texture-editor.panel.view
                         svg.feather
                             use(xlink:href="data/icons.svg#maximize")
                         span {voc.fill}
-                fieldset(if="{opts.texture.shape === 'strip'}")
+                fieldset(if="{this.texture.shape === 'strip'}")
                     .flexrow.aStripPointRow(each="{point, ind in getMovableStripPoints()}")
                         input.short(type="number" value="{point.x}" oninput="{wire('this.texture.stripPoints.'+ ind + '.x')}")
                         span   ×
@@ -79,7 +79,7 @@ texture-editor.panel.view
                         use(xlink:href="data/icons.svg#check")
                     span {vocGlob.apply}
         .texture-editor-anAtlas.tall(
-            if="{opts.texture}"
+            if="{this.texture}"
             style="background-color: {previewColor};"
             onmousewheel="{onMouseWheel}"
         )
@@ -88,7 +88,7 @@ texture-editor.panel.view
                 // This div is needed to cause elements' reflow so the scrollbars update on canvas' size change
                 div(style="width: {zoomFactor}px; height: {zoomFactor}px;")
                 .aClicker(
-                    if="{prevShowMask && opts.texture.shape === 'strip' && getStripSegments()}"
+                    if="{prevShowMask && this.texture.shape === 'strip' && getStripSegments()}"
                     each="{seg, ind in getStripSegments()}"
                     style="left: {seg.left}px; top: {seg.top}px; width: {seg.width}px; transform: translate(0, -50%) rotate({seg.angle}deg);"
                     title="{voc.addPoint}"
@@ -96,12 +96,12 @@ texture-editor.panel.view
                 )
                 .aDragger(
                     if="{prevShowMask}"
-                    style="left: {opts.texture.axis[0] * zoomFactor}px; top: {opts.texture.axis[1] * zoomFactor}px; border-radius: 0;"
+                    style="left: {this.texture.axis[0] * zoomFactor}px; top: {this.texture.axis[1] * zoomFactor}px; border-radius: 0;"
                     title="{voc.moveCenter}"
                     onmousedown="{startMoving('axis')}"
                 )
                 .aDragger(
-                    if="{prevShowMask && opts.texture.shape === 'strip'}"
+                    if="{prevShowMask && this.texture.shape === 'strip'}"
                     each="{point, ind in getMovableStripPoints()}"
                     style="left: {(point.x + texture.axis[0]) * zoomFactor}px; top: {(point.y + texture.axis[1]) * zoomFactor}px;"
                     title="{voc.movePoint}"
@@ -126,7 +126,7 @@ texture-editor.panel.view
                         svg.feather
                             use(xlink:href="data/icons.svg#clipboard")
                     .button.inline(
-                        if="{opts.texture.source}"
+                        if="{this.texture.source}"
                         title="{voc.reimport} (Control+R)"
                         onclick="{reimport}"
                         data-hotkey="Control+r"
@@ -142,7 +142,7 @@ texture-editor.panel.view
                     svg.feather
                         use(xlink:href="data/icons.svg#droplet")
                     span {voc.bgcolor}
-        .column.column2.borderleft.tall.flexfix.nogrow.noshrink(show="{!opts.texture.tiled}")
+        .column.column2.borderleft.tall.flexfix.nogrow.noshrink(show="{!this.texture.tiled}")
             .flexfix-body
                 fieldset
                     .flexrow
@@ -226,6 +226,7 @@ texture-editor.panel.view
         const path = require('path'),
               fs = require('fs-extra');
         const glob = require('./data/node_requires/glob');
+        const {assignTexture} = require('./data/node_requires/resources/textures');
         this.namespace = 'textureview';
         this.mixin(window.riotVoc);
         this.mixin(window.riotWired);
@@ -240,11 +241,18 @@ texture-editor.panel.view
 
         var textureCanvas, grprCanvas;
 
+        this.on('before-mount', () => {
+            // initialize working texture. This must be done first, so refs are available for canvas.
+            this.texture = {};
+            this.projectTexture = this.opts.texture;
+            assignTexture(this.texture, this.projectTexture);
+        });
+
         this.on('mount', () => {
             ({textureCanvas, grprCanvas} = this.refs);
             textureCanvas.x = textureCanvas.getContext('2d');
             grprCanvas.x = grprCanvas.getContext('2d');
-            var texture = this.texture = this.opts.texture;
+            
             var img = document.createElement('img');
             img.onload = () => {
                 textureCanvas.img = img;
@@ -256,13 +264,14 @@ texture-editor.panel.view
             img.onerror = e => {
                 alertify.error(window.languageJSON.textureview.corrupted);
                 console.error(e);
-                this.textureSave();
+                this.parent.editing = false;
+                this.parent.update();
             };
-            img.src = path.join('file://', global.projdir, '/img/', texture.origname) + '?' + Math.random();
+            img.src = path.join('file://', global.projdir, '/img/', this.texture.origname) + '?' + Math.random();
         });
         this.on('update', () => {
             const {textures} = global.currentProject;
-            if (textures.find(texture => this.texture.name === texture.name && this.texture !== texture)) {
+            if (textures.find(texture => this.texture.name === texture.name && this.texture.uid !== texture.uid)) {
                 this.nameTaken = true;
             } else {
                 this.nameTaken = false;
@@ -795,6 +804,9 @@ texture-editor.panel.view
                 }
                 return false;
             }
+
+            assignTexture(this.projectTexture, this.texture);
+
             this.parent.fillTextureMap();
             glob.modified = true;
             this.texture.lastmod = Number(new Date());
