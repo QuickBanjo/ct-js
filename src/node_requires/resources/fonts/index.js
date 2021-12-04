@@ -87,9 +87,20 @@ const importTtfToFont = async function importTtfToFont(src) {
     await fontGenPreview(obj);
     window.signals.trigger('fontCreated');
 };
+
+const assignFont = function(target, source) {
+    // shallow copy first
+    Object.assign(target, source);
+
+    // deep copy charsets, assumes that options are strings
+    target.charsets = [];
+    Object.assign(target.charsets, source.charsets);
+};
+
 module.exports = {
     importTtfToFont,
     fontGenPreview,
     getFontPreview,
-    getPathToTtf
+    getPathToTtf,
+    assignFont
 };

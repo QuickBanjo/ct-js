@@ -57,10 +57,15 @@ font-editor.panel.view
         each val in [8, 9, 10, 11, 12, 14, 16, 21, 24, 32, 48, 60, 72]
             p(style=`font-size: ${val}px; line-height: ${val}px; font-family: 'CTPROJFONT{fontobj.typefaceName}';` data-size=val) A quick blue cat jumps over the lazy frog. 0123456789
     script.
+        const {assignFont} = require('./data/node_requires/resources/fonts');
         this.namespace = 'fontview';
         this.mixin(window.riotVoc);
         this.mixin(window.riotWired);
-        this.fontobj = this.opts.fontobj;
+
+        // make a working copy of the font
+        this.projFontobj = this.opts.fontobj;
+        this.fontobj = {};
+        assignFont(this.fontobj, this.projFontobj);
 
         this.charsetOptions = ['punctuation', 'basicLatin', 'latinExtended', 'cyrillic', 'greekCoptic', 'custom', 'allInFont'];
 
@@ -79,7 +84,11 @@ font-editor.panel.view
         };
 
         this.oldTypefaceName = this.fontobj.typefaceName;
+
         this.fontSave = () => {
+            // copy working font back to project
+            assignFont(this.projFontobj, this.fontobj);
+
             this.parent.editingFont = false;
             this.parent.update();
             this.parent.loadFonts();
