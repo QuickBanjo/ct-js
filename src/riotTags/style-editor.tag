@@ -134,11 +134,17 @@ style-editor.panel.view
     font-selector(if="{selectingFont}" onselected="{applyFont}" oncancelled="{cancelCustomFontSelector}")
     script.
         const fs = require('fs-extra');
+        const {assignStyle} = require('./data/node_requires/styleUtils');
 
         this.namespace = 'styleview';
         this.mixin(window.riotVoc);
         this.mixin(window.riotWired);
-        this.styleobj = this.opts.styleobj;
+
+        // make a working copy of the style
+        this.projectStyleobj = this.opts.styleobj;
+        this.styleobj = {};
+        assignStyle(this.styleobj, this.projectStyleobj);
+
         this.styleobj.font = this.styleobj.font || {
             family: 'sans-serif',
             size: 12,
@@ -184,7 +190,7 @@ style-editor.panel.view
         });
         this.on('update', () => {
             const {styles} = global.currentProject;
-            if (styles.find(style => this.styleobj.name === style.name && this.styleobj !== style)) {
+            if (styles.find(style => this.styleobj.name === style.name && this.styleobj.uid !== style.uid)) {
                 this.nameTaken = true;
             } else {
                 this.nameTaken = false;
@@ -265,6 +271,10 @@ style-editor.panel.view
                 }
                 return false;
             }
+
+            // move working copy back to project data
+            assignStyle(this.projectStyleobj, this.styleobj);
+
             this.styleobj.lastmod = Number(new Date());
             this.styleGenPreview(global.projdir + '/img/' + this.styleobj.origname + '_prev@2.png', 128);
             this.styleGenPreview(global.projdir + '/img/' + this.styleobj.origname + '_prev.png', 64).then(() => {

@@ -37,6 +37,36 @@ const mod = {
             o.dropShadowDistance = Math.hypot(s.shadow.x, s.shadow.y);
         }
         return o;
+    },
+
+    // assumes that object props themselves are shallow
+    assignStyle: (target, source) => {
+        // first, shallow copy
+        Object.assign(target, source);
+    
+        // deep copy fill
+        if(source.fill){
+            target.fill = {};
+            Object.assign(target.fill, source.fill);
+        }
+    
+        // deep copy font
+        if(source.font){
+            target.font = {};
+            Object.assign(target.font, source.font);
+        }
+    
+        // deep copy shadow
+        if(source.shadow){
+            target.shadow = {};
+            Object.assign(target.shadow, source.shadow);
+        }
+    
+        // deep copy stroke
+        if(source.stroke){
+            target.stroke = {};
+            Object.assign(target.stroke, source.stroke);
+        }
     }
 };
 
